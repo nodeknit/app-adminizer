@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "ESNext",
+    "moduleResolution": "Node",
+    "esModuleInterop": true,
+    "sourceMap": false,
+    "declaration": true,
+    "removeComments": false,
+    "skipLibCheck": true,
+    "emitDecoratorMetadata": false, // causes metadata generation in models (so cycled models import does not work)
+    "experimentalDecorators": true,
+    // "strict": true,
+    "alwaysStrict": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "lib": ["dom", "esnext"],
+    "outDir": "dist",
+    "resolveJsonModule": true
+  },
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
+  },
+  "lib": ["esnext"],
+  "exclude": ["node_modules"],
+  "include": [
+    "src/**/*.ts",
+    "./package.json"
+  ]
+}

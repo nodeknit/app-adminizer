@@ -1,0 +1,35 @@
+{
+  "name": "app-adminizer",
+  "type": "module",
+  "version": "1.0.0",
+  "main": "index.js",
+  "typings": "index.d.ts",
+  "scripts": {
+    "test": "vitest",
+    "fixture-start": "node ./fixture/index.js",
+    "start": "node ./dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "adminizer": "github:adminization/adminizer#main",
+    "ajv": "^8.17.1",
+    "express": "^4.21.2",
+    "pg": "^8.13.3",
+    "semver": "^7.7.1",
+    "typescript": "^5.8.2",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "@nodeknit/app-manager": "^1.0.0-build.0",
+    "@types/express": "^5.0.0",
+    "@types/pg": "^8.11.11",
+    "@types/semver": "^7.5.8",
+    "sequelize": "^6.37.5",
+    "sequelize-typescript": "^2.1.6",
+    "tsx": "^4.19.3",
+    "vitest": "^3.0.7"
+  }
+}
