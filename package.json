@@ -14,7 +14,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "adminizer": "github:adminization/adminizer#main",
+    "adminizer": "github:adminization/adminizer#react",
     "ajv": "^8.17.1",
     "express": "^4.21.2",
     "pg": "^8.13.3",
@@ -23,7 +23,7 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
-    "@nodeknit/app-manager": "^1.0.0-build.0",
+    "@nodeknit/app-manager": "commit",
     "@types/express": "^5.0.0",
     "@types/pg": "^8.11.11",
     "@types/semver": "^7.5.8",

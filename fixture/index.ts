@@ -1,7 +1,11 @@
 import { Sequelize } from "sequelize-typescript";
-import {AppManager} from "@nodeknit/app-manager/lib/AppManager.js";
-import SystemApp from "@nodeknit/app-manager/system/SystemApp.js";
+import {AppManager, SystemApp} from "@nodeknit/app-manager"; // TODO разорбраться с импортом
 import {AppAdminizer} from "../dist/src/AppAdminizer.js";
+
+// TODO ставим adminizer как locale_module в dev project чтобы сразу сразу его разрабатывать
+// TODO делаем адаптер для sequelize в adminizer (новая ветка админайзера откол из реакта)
+// TODO продумать как сделать коллекцию конфигов (adminpanelConfig)
+// TODO запустить и проверить что админка работает
 
 process.env.SECRET = "secret";
 process.env.INIT_APPS_TO_ENABLE = "example";
