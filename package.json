@@ -14,7 +14,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "adminizer": "github:adminization/adminizer#react",
+    "adminizer": "next",
     "ajv": "^8.17.1",
     "express": "^4.21.2",
     "pg": "^8.13.3",
