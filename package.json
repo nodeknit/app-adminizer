@@ -23,7 +23,7 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
-    "@nodeknit/app-manager": "commit",
+    "@nodeknit/app-manager": "next",
     "@types/express": "^5.0.0",
     "@types/pg": "^8.11.11",
     "@types/semver": "^7.5.8",
