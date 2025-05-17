@@ -18,6 +18,7 @@ class ConfigProcessor {
     this.defaultConfig = JSON.parse(JSON.stringify(adminizer.config));
     this.isInitialized = true
     this.adminizer.config =  {...this.defaultConfig, ...this.preRunConfig}
+    // console.log(this.adminizer.config)
   }
 
   updateModelConfig(config: AbstractModelConfig){
@@ -46,6 +47,12 @@ export class AppAdminizer extends AbstractApp {
   sequelizeAdapter = new SequelizeAdapter(this.appManager.sequelize)
   adminizer = new Adminizer([this.sequelizeAdapter]);
 
+  @CollectionHandler('adminizerModelConfigs')
+  adminizerModelConfigs: AdminizerModelConfigHandler = new AdminizerModelConfigHandler(
+    this.adminizer,
+    this.sequelizeAdapter,
+    this.configProcessor
+  );
 
   @CollectionHandler('adminizerModelConfigs')
   adminizerModelConfigs: AdminizerModelConfigHandler = new AdminizerModelConfigHandler(
