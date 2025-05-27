@@ -8,9 +8,9 @@ const ADMINIZER_FIELDS_KEY = Symbol('adminizer:fields');
 
 type DecoratorModelFieldConfig = ModelFieldConfig & {
     views?: {
-        list?: ModelFieldConfig,
-        add?: ModelFieldConfig,
-        edit?: ModelFieldConfig
+        list?: ModelFieldConfig | boolean,
+        add?: ModelFieldConfig | boolean,
+        edit?: ModelFieldConfig | boolean
     }
 }
   
@@ -46,7 +46,6 @@ type DecoratorModelFieldConfig = ModelFieldConfig & {
       | 'title'
       | 'icon'
       | 'model'
-      | 'hide'
       | 'identifierField'
       | 'userAccessRelation'
       | 'remove'
@@ -55,6 +54,7 @@ type DecoratorModelFieldConfig = ModelFieldConfig & {
       | 'edit'
       | 'tools'
       | 'list'
+      | 'navbar'
     >
   >;
   
@@ -114,6 +114,7 @@ export function generateAdminizerModelConfig(
       fields: {},
       list: { fields: {} },
       ...options.override,
+      ...modelMeta
     };
   
     for (const [field, meta] of Object.entries(fieldMeta)) {
@@ -125,8 +126,10 @@ export function generateAdminizerModelConfig(
       // Основная конфигурация поля (fallback)
       config.fields![field] = {
         title: meta.title ?? field,
-        disabled: meta.disabled ?? true,
+        disabled: meta.disabled ?? false,
         type: meta.type ?? 'text',
+        ...meta.tooltip && {tooltip: meta.tooltip},
+        ...meta.isIn && {isIn: meta.isIn}, 
         ...(meta.options ? { options: meta.options } : {}),
       };
   

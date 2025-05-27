@@ -54,13 +54,6 @@ export class AppAdminizer extends AbstractApp {
     this.configProcessor
   );
 
-  @CollectionHandler('adminizerModelConfigs')
-  adminizerModelConfigs: AdminizerModelConfigHandler = new AdminizerModelConfigHandler(
-    this.adminizer,
-    this.sequelizeAdapter,
-    this.configProcessor
-  );
-
   @CollectionHandler('adminizerConfigs')
   adminizerConfigHandler: AdminizerConfigHandler = new AdminizerConfigHandler(this.configProcessor)
 
@@ -149,7 +142,8 @@ class AdminizerModelConfigHandler extends AbstractCollectionHandler {
     }) 
     let config = JSON.parse(JSON.stringify(this.adminizer.config))
     delete this.adminizer.config
-    this.adminizer.init(config)
+    this.adminizer.config = config
+    // this.adminizer.init(config)
   }
 
   async unprocess(appManager: AppManager, data: AdminizerModelConfigCollectionItem[]): Promise<void> {
