@@ -11,7 +11,7 @@ type DecoratorModelFieldConfig = ModelFieldConfig & {
         list?: ModelFieldConfig | boolean,
         add?: ModelFieldConfig | boolean,
         edit?: ModelFieldConfig | boolean
-    }
+    } | boolean
 }
   
   //
@@ -99,7 +99,7 @@ export function generateAdminizerModelConfig(
         list?: ModelFieldConfig;
         add?: ModelFieldConfig;
         edit?: ModelFieldConfig;
-      };
+      } | boolean;
     }> = getAdminizerFields(modelClass);
   
     const modelMeta = getAdminizerModelMetadata(modelClass);
@@ -126,37 +126,50 @@ export function generateAdminizerModelConfig(
       // Основная конфигурация поля (fallback)
       config.fields![field] = {
         title: meta.title ?? field,
+        required: meta.required ?? false,
         disabled: meta.disabled ?? false,
         type: meta.type ?? 'text',
         ...meta.tooltip && {tooltip: meta.tooltip},
         ...meta.isIn && {isIn: meta.isIn}, 
         ...(meta.options ? { options: meta.options } : {}),
       };
-  
+      let _viewsConfig = null;
+      if(typeof meta.views === "boolean") {
+        _viewsConfig = {
+          list: { visible: meta.views},
+          add: { visible: meta.views},
+          edit: { visible: meta.views}
+        }
+      } else {
+        _viewsConfig = meta.views
+      }
+
+
+      console.log(_viewsConfig, "<<", field)
       // views.list → list.fields
-      if (meta.views?.list) {
+      if (_viewsConfig?.list) {
         if (typeof config.list !== 'boolean') {
-          config.list.fields![field] = meta.views.list;
+          config.list.fields![field] = _viewsConfig.list;
         }
       }
   
       // views.add → add.fields
-      if (meta.views?.add) {
+      if (_viewsConfig?.add) {
         if (typeof config.add !== 'boolean') {
-          config.add.fields![field] = meta.views.add;
+          config.add.fields![field] = _viewsConfig.add;
         }
       }
   
       // views.edit → edit.fields
-      if (meta.views?.edit) {
+      if (_viewsConfig?.edit) {
         if (typeof config.edit !== 'boolean') {
-          config.edit.fields![field] = meta.views.edit;
+          config.edit.fields![field] = _viewsConfig.edit;
         }
       }
   
-      if (meta.views?.list) {
+      if (_viewsConfig?.list) {
         if (typeof config.list !== 'boolean') {
-          config.list.fields![field] = meta.views.list;
+          config.list.fields![field] = _viewsConfig.list;
         }
       } else {
         if (typeof config.list !== 'boolean') {
@@ -173,8 +186,11 @@ export function generateAdminizerModelConfig(
       }
     }
   
-    return {
+    let a = {
       modelname: config.model!,
       config,
     };
+
+    console.log(JSON.stringify(a))
+    return a
   }
