@@ -116,7 +116,6 @@ export function generateAdminizerModelConfig(
       ...options.override,
       ...modelMeta
     };
-  
     for (const [field, meta] of Object.entries(fieldMeta)) {
       if (exclude.has(field)) {
         config.fields![field] = false;
@@ -145,7 +144,7 @@ export function generateAdminizerModelConfig(
       }
 
 
-      console.log(_viewsConfig, "<<", field)
+      // console.log(_viewsConfig, "<<", field)
       // views.list → list.fields
       if (_viewsConfig?.list) {
         if (typeof config.list !== 'boolean') {

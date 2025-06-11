@@ -2,27 +2,29 @@ import { AppManager, CollectionHandler } from "@nodeknit/app-manager";
 import {AbstractApp} from "@nodeknit/app-manager/lib/AbstractApp";
 import { AbstractCollectionHandler, CollectionItem } from "@nodeknit/app-manager/lib/CollectionStorage";
 import { Adminizer, AdminizerConfig, AdminpanelConfig, SequelizeAdapter } from "adminizer"
+import path from 'path';
+import serveStatic from 'serve-static';
 import { AbstractModelConfig } from "./abstract/AbstractModelConfig";
 import { json } from "sequelize";
 // import * as adminpanelConfig from "./adminizerConfig"
 
 class ConfigProcessor {
   adminizer: Adminizer
-  defaultConfig: AdminizerConfig = {} as AdminizerConfig
+  appDefaultConfig!: AdminizerConfig
 
   preRunConfig = {}
 
   isInitialized = false
   init(adminizer: Adminizer) {
     this.adminizer = adminizer
-    this.defaultConfig = JSON.parse(JSON.stringify(adminizer.config));
+    this.appDefaultConfig = JSON.parse(JSON.stringify(adminizer.config));
     this.isInitialized = true
-    this.adminizer.config =  {...this.defaultConfig, ...this.preRunConfig}
+    this.adminizer.config =  {...this.adminizer.defaultConfig, ...this.appDefaultConfig,  ...this.preRunConfig}
     // console.log(this.adminizer.config)
   }
 
   updateModelConfig(config: AbstractModelConfig){
-    this.adminizer.config.models[config.modelname] = config.config
+    this.adminizer.config.models[config.modelname.toLowerCase()] = config.config
   }
 
   updateConfig(config: AdminpanelConfig){
@@ -72,6 +74,11 @@ export class AppAdminizer extends AbstractApp {
     const adminizerHandler = this.adminizer.getMiddleware();
 
     this.appManager.app.use('/', this.adminizer.app);
+    // Serve custom Inertia modules built by Vite
+    this.adminizer.app.use(
+      `${this.adminizer.config.routePrefix}/modules`,
+      serveStatic(path.resolve(process.cwd(), 'dist/modules'))
+    );
     this.configProcessor.init(this.adminizer)
     this.adminizerModelConfigs
 
@@ -150,4 +157,3 @@ class AdminizerModelConfigHandler extends AbstractCollectionHandler {
     console.log(data)
   }
 }
-
