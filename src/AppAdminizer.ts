@@ -172,24 +172,55 @@ class AdminizerModelConfigHandler extends AbstractCollectionHandler {
       this.adminizer = adminizer
     }
     async process(appManager: AppManager, data: CollectionItem[]): Promise<void> {
-      const prefix = this.adminizer.config.routePrefix || ''
-      data.forEach(({ item }) => {
-        // If middleware is a raw function, register globally on Adminizer app
-        if (typeof item === 'function') {
-          this.adminizer.app.use(item as any)
-        // If middleware is an object with route and handler
-        } else if (item && typeof item === 'object' && 'route' in item && typeof (item as any).handler === 'function') {
-          const mw = item as { route: string; handler: any; method?: string }
-          // Compute full path under Adminizer prefix
-          const routePath = `${prefix}${mw.route}`
-          const method = (mw.method || 'use').toLowerCase()
-          if (method === 'use') {
-            this.adminizer.app.use(routePath, mw.handler)
-          } else if (['all','get','post','put','delete','patch','options','head'].includes(method)) {
-            ;(this.adminizer.app as any)[method](routePath, mw.handler)
+      const prefix = this.adminizer.config.routePrefix || '';
+      const router = (this.adminizer.app as any)._router;
+      if (!router || !Array.isArray(router.stack)) {
+        // Unable to retrieve router stack; fallback to simple registration
+        data.forEach(({ item }) => {
+          if (typeof item === 'function') {
+            this.adminizer.app.use(item as any);
+          } else if (item && typeof item === 'object' && 'route' in item && typeof (item as any).handler === 'function') {
+            const mw = item as { route: string; handler: any; method?: string };
+            const path = `${prefix}${mw.route}`;
+            const method = (mw.method || 'use').toLowerCase();
+            if (method === 'use') this.adminizer.app.use(path, mw.handler);
+            else if (['all','get','post','put','delete','patch','options','head'].includes(method)) (this.adminizer.app as any)[method](path, mw.handler);
           }
+        });
+        return;
+      }
+      // For each middleware, register and move its layer before existing routes
+      data.forEach(({ item }) => {
+        if (typeof item === 'function') {
+          // Global middleware without path
+          this.adminizer.app.use(item as any);
+          return;
         }
-      })
+        if (!item || typeof item !== 'object' || !('route' in item) || typeof (item as any).handler !== 'function') {
+          return;
+        }
+        const mw = item as { route: string; handler: any; method?: string };
+        const fullPath = `${prefix}${mw.route}`;
+        const method = (mw.method || 'use').toLowerCase();
+        // Record original stack length
+        const stack = router.stack;
+        const origLen = stack.length;
+        // Register middleware
+        if (method === 'use') {
+          this.adminizer.app.use(fullPath, mw.handler);
+        } else if (['all','get','post','put','delete','patch','options','head'].includes(method)) {
+          (this.adminizer.app as any)[method](fullPath, mw.handler);
+        } else {
+          this.adminizer.app.use(fullPath, mw.handler);
+        }
+        // Extract newly added layers
+        const newLayers = stack.splice(origLen, stack.length - origLen);
+        // Find first index of a layer with route defined
+        const insertIdx = stack.findIndex((layer: any) => layer.route);
+        const idx = insertIdx >= 0 ? insertIdx : stack.length;
+        // Insert new layers before existing routes
+        stack.splice(idx, 0, ...newLayers);
+      });
     }
     async unprocess(appManager: AppManager, data: CollectionItem[]): Promise<void> {
       // No unmounting of middleware currently supported
