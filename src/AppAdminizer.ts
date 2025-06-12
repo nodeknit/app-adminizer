@@ -172,18 +172,21 @@ class AdminizerModelConfigHandler extends AbstractCollectionHandler {
       this.adminizer = adminizer
     }
     async process(appManager: AppManager, data: CollectionItem[]): Promise<void> {
+      const prefix = this.adminizer.config.routePrefix || ''
       data.forEach(({ item }) => {
-        // If middleware is a raw function, register globally
+        // If middleware is a raw function, register globally on Adminizer app
         if (typeof item === 'function') {
-          this.adminizer.app.use(item)
+          this.adminizer.app.use(item as any)
         // If middleware is an object with route and handler
         } else if (item && typeof item === 'object' && 'route' in item && typeof (item as any).handler === 'function') {
           const mw = item as { route: string; handler: any; method?: string }
+          // Compute full path under Adminizer prefix
+          const routePath = `${prefix}${mw.route}`
           const method = (mw.method || 'use').toLowerCase()
           if (method === 'use') {
-            this.adminizer.app.use(mw.route, mw.handler)
+            this.adminizer.app.use(routePath, mw.handler)
           } else if (['all','get','post','put','delete','patch','options','head'].includes(method)) {
-            ;(this.adminizer.app as any)[method](mw.route, mw.handler)
+            ;(this.adminizer.app as any)[method](routePath, mw.handler)
           }
         }
       })
