@@ -58,6 +58,11 @@ export class AppAdminizer extends AbstractApp {
 
   @CollectionHandler('adminizerConfigs')
   adminizerConfigHandler: AdminizerConfigHandler = new AdminizerConfigHandler(this.configProcessor)
+  /**
+   * Register custom middleware on the Adminizer Express app
+   */
+  @CollectionHandler('adminizerMiddlewares')
+  adminizerMiddlewareHandler: AdminizerMiddlewareHandler = new AdminizerMiddlewareHandler(this.adminizer)
 
   constructor(appManager: AppManager, config?: AdminizerConfig) {
     super(appManager);
@@ -153,7 +158,37 @@ class AdminizerModelConfigHandler extends AbstractCollectionHandler {
     // this.adminizer.init(config)
   }
 
-  async unprocess(appManager: AppManager, data: AdminizerModelConfigCollectionItem[]): Promise<void> {
-    console.log(data)
+    async unprocess(appManager: AppManager, data: AdminizerModelConfigCollectionItem[]): Promise<void> {
+      console.log(data)
+    }
   }
-}
+  /**
+   * Collection handler for registering custom middleware on the Adminizer Express app
+   */
+  class AdminizerMiddlewareHandler extends AbstractCollectionHandler {
+    private adminizer: Adminizer
+    constructor(adminizer: Adminizer) {
+      super()
+      this.adminizer = adminizer
+    }
+    async process(appManager: AppManager, data: CollectionItem[]): Promise<void> {
+      data.forEach(({ item }) => {
+        // If middleware is a raw function, register globally
+        if (typeof item === 'function') {
+          this.adminizer.app.use(item)
+        // If middleware is an object with route and handler
+        } else if (item && typeof item === 'object' && 'route' in item && typeof (item as any).handler === 'function') {
+          const mw = item as { route: string; handler: any; method?: string }
+          const method = (mw.method || 'use').toLowerCase()
+          if (method === 'use') {
+            this.adminizer.app.use(mw.route, mw.handler)
+          } else if (['all','get','post','put','delete','patch','options','head'].includes(method)) {
+            ;(this.adminizer.app as any)[method](mw.route, mw.handler)
+          }
+        }
+      })
+    }
+    async unprocess(appManager: AppManager, data: CollectionItem[]): Promise<void> {
+      // No unmounting of middleware currently supported
+    }
+  }
