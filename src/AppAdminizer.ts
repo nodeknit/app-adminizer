@@ -190,7 +190,6 @@ class AdminizerMiddlewareHandler extends AbstractCollectionHandler {
             typeof item === 'object' &&
             typeof item.handler === 'function'
           ) {
-            console.log(item.route, "111", req.path)
             const routeMatch = !item.route || req.path.startsWith(item.route);
             const methodMatch =
               !item.method ||
