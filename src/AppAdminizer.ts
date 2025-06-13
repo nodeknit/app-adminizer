@@ -48,7 +48,6 @@ export class AppAdminizer extends AbstractApp {
   configProcessor = new ConfigProcessor()
   sequelizeAdapter = new SequelizeAdapter(this.appManager.sequelize)
   adminizer = new Adminizer([this.sequelizeAdapter]);
-
   @CollectionHandler('adminizerModelConfigs')
   adminizerModelConfigs: AdminizerModelConfigHandler = new AdminizerModelConfigHandler(
     this.adminizer,
@@ -69,32 +68,27 @@ export class AppAdminizer extends AbstractApp {
     if(config) {
       this.config = config
     }
+
    }
 
   async mount(): Promise<void> {
-    const routePrefix = '/adminizer';
-    await SequelizeAdapter.registerSystemModels(this.appManager.sequelize)
-    this.adminizer.init(this.config as unknown as AdminizerConfig)
+    await SequelizeAdapter.registerSystemModels(this.appManager.sequelize);
+    // Ensure Adminizer is fully initialized (inertia, routes, etc.) before applying custom logic
 
-    const adminizerHandler = this.adminizer.getMiddleware();
 
-    this.appManager.app.use('/', this.adminizer.app);
+    this.adminizer.defaultMiddleware = this.adminizerMiddlewareHandler.getMiddleware()
+    await this.adminizer.init(this.config as unknown as AdminizerConfig);
+
     // Serve custom Inertia modules built by Vite
-    this.adminizer.app.use(
+    this.appManager.app.use(
       `${this.adminizer.config.routePrefix}/modules`,
       serveStatic(path.resolve(process.cwd(), 'dist/modules'))
     );
-    this.configProcessor.init(this.adminizer)
-    this.adminizerModelConfigs
 
-    // this.appManager.app.use(routePrefix, (req: { url: string; }, res: any) => {
-    //   // Удаляем префикс из пути
-    //   console.log(req.url, "1")
-    //   req.url = req.url = routePrefix;
-    //   console.log(req.url, "2")
-      
-    //   return adminizerHandler(req, res);
-    // });
+    this.appManager.app.use('/', this.adminizer.app);
+    // Initialize config processor and apply any model/config collections
+    this.configProcessor.init(this.adminizer);
+    this.adminizerModelConfigs;
   }
 
   async unmount(): Promise<void> {
@@ -165,64 +159,81 @@ class AdminizerModelConfigHandler extends AbstractCollectionHandler {
   /**
    * Collection handler for registering custom middleware on the Adminizer Express app
    */
-  class AdminizerMiddlewareHandler extends AbstractCollectionHandler {
-    private adminizer: Adminizer
-    constructor(adminizer: Adminizer) {
-      super()
-      this.adminizer = adminizer
-    }
-    async process(appManager: AppManager, data: CollectionItem[]): Promise<void> {
-      const prefix = this.adminizer.config.routePrefix || '';
-      const router = (this.adminizer.app as any)._router;
-      if (!router || !Array.isArray(router.stack)) {
-        // Unable to retrieve router stack; fallback to simple registration
-        data.forEach(({ item }) => {
-          if (typeof item === 'function') {
-            this.adminizer.app.use(item as any);
-          } else if (item && typeof item === 'object' && 'route' in item && typeof (item as any).handler === 'function') {
-            const mw = item as { route: string; handler: any; method?: string };
-            const path = `${prefix}${mw.route}`;
-            const method = (mw.method || 'use').toLowerCase();
-            if (method === 'use') this.adminizer.app.use(path, mw.handler);
-            else if (['all','get','post','put','delete','patch','options','head'].includes(method)) (this.adminizer.app as any)[method](path, mw.handler);
-          }
-        });
-        return;
-      }
-      // For each middleware, register and move its layer before existing routes
-      data.forEach(({ item }) => {
-        if (typeof item === 'function') {
-          // Global middleware without path
-          this.adminizer.app.use(item as any);
-          return;
-        }
-        if (!item || typeof item !== 'object' || !('route' in item) || typeof (item as any).handler !== 'function') {
-          return;
-        }
-        const mw = item as { route: string; handler: any; method?: string };
-        const fullPath = `${prefix}${mw.route}`;
-        const method = (mw.method || 'use').toLowerCase();
-        // Record original stack length
-        const stack = router.stack;
-        const origLen = stack.length;
-        // Register middleware
-        if (method === 'use') {
-          this.adminizer.app.use(fullPath, mw.handler);
-        } else if (['all','get','post','put','delete','patch','options','head'].includes(method)) {
-          (this.adminizer.app as any)[method](fullPath, mw.handler);
-        } else {
-          this.adminizer.app.use(fullPath, mw.handler);
-        }
-        // Extract newly added layers
-        const newLayers = stack.splice(origLen, stack.length - origLen);
-        // Find first index of a layer with route defined
-        const insertIdx = stack.findIndex((layer: any) => layer.route);
-        const idx = insertIdx >= 0 ? insertIdx : stack.length;
-        // Insert new layers before existing routes
-        stack.splice(idx, 0, ...newLayers);
-      });
-    }
-    async unprocess(appManager: AppManager, data: CollectionItem[]): Promise<void> {
-      // No unmounting of middleware currently supported
-    }
+class AdminizerMiddlewareHandler extends AbstractCollectionHandler {
+  private adminizer: Adminizer;
+  private middlewares: CollectionItem[] = [];
+
+  constructor(adminizer: Adminizer) {
+    super();
+    this.adminizer = adminizer;
   }
+
+  public getMiddleware() {
+      return this.middlewareDispatcher();
+  }
+
+  /**
+   * Центральный обработчик всех зарегистрированных middleware
+   */
+  private middlewareDispatcher() {
+    return (req, res, next) => {
+      const method = req.method.toLowerCase();
+      console.log(this.middlewares)
+      const stack = this.middlewares
+        .map(({ item }) => {
+          if (typeof item === 'function') {
+            return item;
+          }
+
+          if (
+            item &&
+            typeof item === 'object' &&
+            typeof item.handler === 'function'
+          ) {
+            console.log(item.route, "111", req.path)
+            const routeMatch = !item.route || req.path.startsWith(item.route);
+            const methodMatch =
+              !item.method ||
+              item.method.toLowerCase() === method ||
+              item.method.toLowerCase() === 'use';
+
+            if (routeMatch && methodMatch) {
+              return item.handler;
+            }
+          }
+
+          return null;
+        })
+        .filter(Boolean);
+
+      let index = 0;
+      const run = (err?: any) => {
+        if (err) return next(err);
+        const middleware = stack[index++];
+        if (!middleware) return next();
+        try {
+          middleware(req, res, run); // теперь run — это next
+        } catch (e) {
+          next(e);
+        }
+      };
+
+      run();
+    };
+  }
+
+  /**
+   * Добавление middleware из коллекции
+   */
+  async process(appManager: AppManager, data: CollectionItem[]): Promise<void> {
+    this.middlewares.push(...data);
+  }
+
+  /**
+   * Удаление middleware по id
+   */
+  async unprocess(appManager: AppManager, data: CollectionItem[]): Promise<void> {
+    const idsToRemove = data.map(d => d.id);
+    this.middlewares = this.middlewares.filter(mw => !idsToRemove.includes(mw.id));
+  }
+}
