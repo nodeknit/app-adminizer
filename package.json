@@ -31,5 +31,8 @@
     "sequelize-typescript": "^2.1.6",
     "tsx": "^4.19.3",
     "vitest": "^3.0.7"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
