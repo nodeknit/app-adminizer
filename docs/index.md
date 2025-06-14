@@ -13,7 +13,7 @@ This module integrates the Adminizer (admin panel) into a NodeKnit App and provi
 
 ### Registering Middleware
 
-In your application class (e.g. in `app-uzimuth-base/index.ts`), define a collection of middleware:
+In your application class (e.g. in `app-base/index.ts`), define a collection of middleware:
 
 ```ts
 import { AbstractApp, AppManager, Collection } from '@nodeknit/app-manager';
