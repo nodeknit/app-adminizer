@@ -4,6 +4,7 @@ import { AbstractCollectionHandler, CollectionItem } from "@nodeknit/app-manager
 import { Adminizer, AdminizerConfig, AdminpanelConfig, SequelizeAdapter } from "adminizer"
 import path from 'path';
 import serveStatic from 'serve-static';
+import { Request, Response, NextFunction } from 'express';
 import { AbstractModelConfig } from "./abstract/AbstractModelConfig";
 import { json } from "sequelize";
 // import * as adminpanelConfig from "./adminizerConfig"
@@ -31,11 +32,11 @@ class ConfigProcessor {
     console.log(this.isInitialized, "this.isInitialized")
 
     if(this.isInitialized) {
-      this.adminizer.config  = {...this.defaultConfig, ...config}
+      this.adminizer.config  = {...this.appDefaultConfig, ...config}
       console.log(this.adminizer.config, "preRunConfig", config)
 
     } else {
-      this.preRunConfig = {...this.defaultConfig, ...config}
+      this.preRunConfig = {...this.appDefaultConfig, ...config}
     }
   }
 }
@@ -176,7 +177,7 @@ class AdminizerMiddlewareHandler extends AbstractCollectionHandler {
    * Центральный обработчик всех зарегистрированных middleware
    */
   private middlewareDispatcher() {
-    return (req, res, next) => {
+    return (req: Request, res: Response, next: NextFunction) => {
       const method = req.method.toLowerCase();
       console.log(this.middlewares)
       const stack = this.middlewares
@@ -232,7 +233,7 @@ class AdminizerMiddlewareHandler extends AbstractCollectionHandler {
    * Удаление middleware по id
    */
   async unprocess(appManager: AppManager, data: CollectionItem[]): Promise<void> {
-    const idsToRemove = data.map(d => d.id);
-    this.middlewares = this.middlewares.filter(mw => !idsToRemove.includes(mw.id));
+    const appIdsToRemove = data.map(d => d.appId);
+    this.middlewares = this.middlewares.filter(mw => !appIdsToRemove.includes(mw.appId));
   }
 }
