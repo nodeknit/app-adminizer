@@ -14,7 +14,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "adminizer": "4.2.0-build.51",
+    "adminizer": "4.2.0-build.72",
     "ajv": "^8.17.1",
     "express": "^4.21.2",
     "pg": "^8.13.3",
@@ -22,7 +22,11 @@
     "typescript": "^5.8.2",
     "winston": "^3.17.0"
   },
+  "peerDependencies": {
+    "reflect-metadata": "^0.2.2"
+  },
   "devDependencies": {
+    "reflect-metadata": "^0.2.2",
     "@nodeknit/app-manager": "next",
     "@types/express": "^5.0.0",
     "@types/pg": "^8.11.11",
