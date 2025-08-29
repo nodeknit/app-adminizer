@@ -23,11 +23,12 @@
     "winston": "^3.17.0"
   },
   "peerDependencies": {
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "@nodeknit/app-manager": "*"
   },
   "devDependencies": {
     "reflect-metadata": "^0.2.2",
-    "@nodeknit/app-manager": "next",
+    "@nodeknit/app-manager": "*",
     "@types/express": "^5.0.0",
     "@types/pg": "^8.11.11",
     "@types/semver": "^7.5.8",
