@@ -23,7 +23,7 @@ try {
   await sequelize.authenticate();
   AppManager.log.info("Connected to PostgreSQL!");
 
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production' || process.env.FORCE_ALTER) {
     await sequelize.sync({ force: false, alter: true });
   }
   AppManager.log.info("Sequelize ORM initialized!");
