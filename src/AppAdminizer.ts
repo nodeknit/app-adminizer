@@ -84,8 +84,14 @@ export class AppAdminizer extends AbstractApp {
       serveStatic(path.resolve(process.cwd(), 'dist/modules'))
     );
 
-    // Mount Adminizer with its own routePrefix-aware middleware, so non-admin routes bypass it
-    this.appManager.app.use(this.adminizer.getMiddleware());
+    // Mount Adminizer strictly under its routePrefix to avoid bleeding middleware (e.g., CSRF) into other routes like /graphql
+    const routePrefix = this.adminizer.config.routePrefix || '';
+    if (routePrefix) {
+      this.appManager.app.use(routePrefix, this.adminizer.getMiddleware());
+    } else {
+      // Fallback: keep existing behavior but this should not happen in production
+      this.appManager.app.use(this.adminizer.getMiddleware());
+    }
     // Initialize config processor and apply any model/config collections
     this.configProcessor.init(this.adminizer);
     this.adminizerModelConfigs;
