@@ -84,7 +84,8 @@ export class AppAdminizer extends AbstractApp {
       serveStatic(path.resolve(process.cwd(), 'dist/modules'))
     );
 
-    this.appManager.app.use('/', this.adminizer.app);
+    // Mount Adminizer with its own routePrefix-aware middleware, so non-admin routes bypass it
+    this.appManager.app.use(this.adminizer.getMiddleware());
     // Initialize config processor and apply any model/config collections
     this.configProcessor.init(this.adminizer);
     this.adminizerModelConfigs;
@@ -176,6 +177,11 @@ class AdminizerMiddlewareHandler extends AbstractCollectionHandler {
    */
   private middlewareDispatcher() {
     return (req: Request, res: Response, next: NextFunction) => {
+      // Ensure adminizer middlewares run only for requests under routePrefix
+      const routePrefix = this.adminizer?.config?.routePrefix || '';
+      if (routePrefix && !req.path.startsWith(routePrefix)) {
+        return next();
+      }
       const method = req.method.toLowerCase();
       console.log(this.middlewares)
       const stack = this.middlewares
