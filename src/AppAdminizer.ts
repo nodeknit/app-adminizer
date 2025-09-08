@@ -1,10 +1,13 @@
-import { AppManager, CollectionHandler, AbstractApp, AbstractCollectionHandler, CollectionItem } from "@nodeknit/app-manager";
+import { AppManager, CollectionHandler, AbstractApp } from "@nodeknit/app-manager";
 import { Adminizer, AdminizerConfig, AdminpanelConfig, SequelizeAdapter } from "adminizer"
 import path from 'path';
 import serveStatic from 'serve-static';
 import { Request, Response, NextFunction } from 'express';
 import { AbstractModelConfig } from "./abstract/AbstractModelConfig";
 import { json } from "sequelize";
+
+// Local minimal typings to avoid relying on internal exports of app-manager
+type LocalCollectionItem = { appId: string; item: any };
 // import * as adminpanelConfig from "./adminizerConfig"
 
 class ConfigProcessor {
@@ -103,27 +106,26 @@ export class AppAdminizer extends AbstractApp {
 }
 
 
-class AdminizerConfigHandler extends AbstractCollectionHandler {
+class AdminizerConfigHandler {
   configProcessor: ConfigProcessor 
   constructor(configProcessor: ConfigProcessor ) {
-    super();
     this.configProcessor = configProcessor
   }
-  async process(appManager: AppManager, data: CollectionItem[]): Promise<void> {
+  async process(appManager: AppManager, data: LocalCollectionItem[]): Promise<void> {
     data.forEach((item)=>{
       this.configProcessor.updateConfig(item.item);
     })
   }
-  async unprocess(appManager: AppManager, data: CollectionItem[]): Promise<void> {
+  async unprocess(appManager: AppManager, data: LocalCollectionItem[]): Promise<void> {
     console.log(data)
   }
 }
 
-export type AdminizerModelConfigCollectionItem = CollectionItem & {
+export type AdminizerModelConfigCollectionItem = LocalCollectionItem & {
   item: AbstractModelConfig
 }
 
-class AdminizerModelConfigHandler extends AbstractCollectionHandler {
+class AdminizerModelConfigHandler {
   adminizer: Adminizer 
   sequelizeAdapter: SequelizeAdapter
   configProcessor: ConfigProcessor 
@@ -132,7 +134,6 @@ class AdminizerModelConfigHandler extends AbstractCollectionHandler {
     sequelizeAdapter: SequelizeAdapter,
     configProcessor: ConfigProcessor
   ) {
-    super();
     this.adminizer = adminizer;
     this.sequelizeAdapter = sequelizeAdapter;
     this.configProcessor = configProcessor;
@@ -165,12 +166,11 @@ class AdminizerModelConfigHandler extends AbstractCollectionHandler {
   /**
    * Collection handler for registering custom middleware on the Adminizer Express app
    */
-class AdminizerMiddlewareHandler extends AbstractCollectionHandler {
+class AdminizerMiddlewareHandler {
   private adminizer: Adminizer;
-  private middlewares: CollectionItem[] = [];
+  private middlewares: LocalCollectionItem[] = [];
 
   constructor(adminizer: Adminizer) {
-    super();
     this.adminizer = adminizer;
   }
 
@@ -235,14 +235,14 @@ class AdminizerMiddlewareHandler extends AbstractCollectionHandler {
   /**
    * Добавление middleware из коллекции
    */
-  async process(appManager: AppManager, data: CollectionItem[]): Promise<void> {
+  async process(appManager: AppManager, data: LocalCollectionItem[]): Promise<void> {
     this.middlewares.push(...data);
   }
 
   /**
    * Удаление middleware по id
    */
-  async unprocess(appManager: AppManager, data: CollectionItem[]): Promise<void> {
+  async unprocess(appManager: AppManager, data: LocalCollectionItem[]): Promise<void> {
     const appIdsToRemove = data.map(d => d.appId);
     this.middlewares = this.middlewares.filter(mw => !appIdsToRemove.includes(mw.appId));
   }
