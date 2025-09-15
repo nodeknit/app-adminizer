@@ -14,7 +14,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "adminizer": "4.3.0-build.79",
+    "adminizer": "4.3.0-build.81",
     "ajv": "^8.17.1",
     "express": "^4.21.2",
     "pg": "^8.13.3",

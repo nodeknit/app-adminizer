@@ -1,5 +1,5 @@
-import { AppManager, CollectionHandler, AbstractApp } from "@nodeknit/app-manager";
-import { Adminizer, AdminizerConfig, AdminpanelConfig, SequelizeAdapter } from "adminizer"
+import { AppManager, CollectionHandler, AbstractApp, Migration, Collection } from "@nodeknit/app-manager";
+import { Adminizer, AdminizerConfig, AdminpanelConfig, SequelizeAdapter, migrations } from "adminizer"
 import path from 'path';
 import serveStatic from 'serve-static';
 import { Request, Response, NextFunction } from 'express';
@@ -50,6 +50,10 @@ export class AppAdminizer extends AbstractApp {
   configProcessor = new ConfigProcessor()
   sequelizeAdapter = new SequelizeAdapter(this.appManager.sequelize)
   adminizer = new Adminizer([this.sequelizeAdapter]);
+
+  @Collection
+  migrations: Migration[] = migrations.umzug
+
   @CollectionHandler('adminizerModelConfigs')
   adminizerModelConfigs: AdminizerModelConfigHandler = new AdminizerModelConfigHandler(
     this.adminizer,
@@ -74,7 +78,7 @@ export class AppAdminizer extends AbstractApp {
    }
 
   async mount(): Promise<void> {
-    await SequelizeAdapter.registerSystemModels(this.appManager.sequelize);
+    await SequelizeAdapter.registerSystemModels(this.appManager.sequelize, process.env.ORM_ALTER === 'true');
     // Ensure Adminizer is fully initialized (inertia, routes, etc.) before applying custom logic
 
 
