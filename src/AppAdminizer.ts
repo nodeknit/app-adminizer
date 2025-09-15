@@ -53,7 +53,6 @@ export class AppAdminizer extends AbstractApp {
 
   @Collection
   migrations: Migration[] = migrations.umzug
-
   @CollectionHandler('adminizerModelConfigs')
   adminizerModelConfigs: AdminizerModelConfigHandler = new AdminizerModelConfigHandler(
     this.adminizer,
