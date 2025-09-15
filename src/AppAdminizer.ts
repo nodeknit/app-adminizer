@@ -77,7 +77,8 @@ export class AppAdminizer extends AbstractApp {
    }
 
   async mount(): Promise<void> {
-    await SequelizeAdapter.registerSystemModels(this.appManager.sequelize, process.env.ORM_ALTER === 'true');
+    // Register system models but skip sync when using migrations
+    await SequelizeAdapter.registerSystemModels(this.appManager.sequelize, process.env.ORM_ALTER !== 'false');
     // Ensure Adminizer is fully initialized (inertia, routes, etc.) before applying custom logic
 
 
