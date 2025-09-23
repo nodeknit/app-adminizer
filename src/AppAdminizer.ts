@@ -1,5 +1,5 @@
-import { AppManager, CollectionHandler, AbstractApp, Migration, Collection } from "@nodeknit/app-manager";
-import { Adminizer, AdminizerConfig, AdminpanelConfig, SequelizeAdapter, migrations } from "adminizer"
+import { AppManager, CollectionHandler, AbstractApp, Collection } from "@nodeknit/app-manager";
+import { Adminizer, AdminizerConfig, AdminpanelConfig, Migration, SequelizeAdapter, migrations } from "adminizer"
 import path from 'path';
 import serveStatic from 'serve-static';
 import { Request, Response, NextFunction } from 'express';
