@@ -4,7 +4,6 @@ import path from 'path';
 import serveStatic from 'serve-static';
 import { Request, Response, NextFunction } from 'express';
 import { AbstractModelConfig } from "./abstract/AbstractModelConfig";
-import { json } from "sequelize";
 
 // Local minimal typings to avoid relying on internal exports of app-manager
 type LocalCollectionItem = { appId: string; item: any };
@@ -44,8 +43,8 @@ class ConfigProcessor {
 
 
 export class AppAdminizer extends AbstractApp {
-  appId: string;
-  name: string;
+  readonly appId: string = "app-adminizer";
+  readonly name: string = "Adminizer";
   public config: AdminizerConfig = {} as AdminizerConfig
   configProcessor = new ConfigProcessor()
   sequelizeAdapter = new SequelizeAdapter(this.appManager.sequelize)
