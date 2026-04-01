@@ -147,31 +147,31 @@ export function generateAdminizerModelConfig(
       // console.log(_viewsConfig, "<<", field)
       // views.list → list.fields
       if (_viewsConfig?.list) {
-        if (typeof config.list !== 'boolean') {
+        if (config.list && typeof config.list !== 'boolean') {
           config.list.fields![field] = _viewsConfig.list;
         }
       }
   
       // views.add → add.fields
       if (_viewsConfig?.add) {
-        if (typeof config.add !== 'boolean') {
+        if (config.add && typeof config.add !== 'boolean') {
           config.add.fields![field] = _viewsConfig.add;
         }
       }
   
       // views.edit → edit.fields
       if (_viewsConfig?.edit) {
-        if (typeof config.edit !== 'boolean') {
+        if (config.edit && typeof config.edit !== 'boolean') {
           config.edit.fields![field] = _viewsConfig.edit;
         }
       }
   
       if (_viewsConfig?.list) {
-        if (typeof config.list !== 'boolean') {
+        if (config.list && typeof config.list !== 'boolean') {
           config.list.fields![field] = _viewsConfig.list;
         }
       } else {
-        if (typeof config.list !== 'boolean') {
+        if (config.list && typeof config.list !== 'boolean') {
           config.list.fields![field] = {};
         }
       }

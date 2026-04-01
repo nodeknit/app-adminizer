@@ -10,7 +10,7 @@ type LocalCollectionItem = { appId: string; item: any };
 // import * as adminpanelConfig from "./adminizerConfig"
 
 class ConfigProcessor {
-  adminizer: Adminizer
+  adminizer!: Adminizer
   appDefaultConfig!: AdminizerConfig
 
   preRunConfig = {}
@@ -156,8 +156,9 @@ class AdminizerModelConfigHandler {
       // const model = new this.sequelizeAdapter.Model(item.modelname, registeredModel);
       // this.adminizer.modelHandler.add(item.modelname, model);
     }) 
-    let config = JSON.parse(JSON.stringify(this.adminizer.config))
-    delete this.adminizer.config
+    const config = JSON.parse(JSON.stringify(this.adminizer.config));
+    const adminizerAny = this.adminizer as any;
+    adminizerAny.config = undefined;
     this.adminizer.config = config
     // this.adminizer.init(config)
   }
