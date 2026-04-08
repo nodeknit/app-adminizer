@@ -32,7 +32,7 @@
   },
   "peerDependencies": {
     "reflect-metadata": "^0.2.2",
-    "@nodeknit/app-manager": "commit"
+    "@nodeknit/app-manager": "*"
   },
   "devDependencies": {
     "reflect-metadata": "^0.2.2",
