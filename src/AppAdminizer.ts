@@ -9,6 +9,22 @@ import { AbstractModelConfig } from "./abstract/AbstractModelConfig";
 type LocalCollectionItem = { appId: string; item: any };
 // import * as adminpanelConfig from "./adminizerConfig"
 
+function safeCloneConfig<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => safeCloneConfig(item)) as T;
+  }
+
+  if (value && typeof value === "object") {
+    const cloned: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      cloned[key] = safeCloneConfig(entry);
+    }
+    return cloned as T;
+  }
+
+  return value;
+}
+
 class ConfigProcessor {
   adminizer!: Adminizer
   appDefaultConfig!: AdminizerConfig
@@ -18,7 +34,7 @@ class ConfigProcessor {
   isInitialized = false
   init(adminizer: Adminizer) {
     this.adminizer = adminizer
-    this.appDefaultConfig = JSON.parse(JSON.stringify(adminizer.config));
+    this.appDefaultConfig = safeCloneConfig(adminizer.config);
     this.isInitialized = true
     this.adminizer.config =  {...this.adminizer.defaultConfig, ...this.appDefaultConfig,  ...this.preRunConfig}
     // console.log(this.adminizer.config)
@@ -75,9 +91,32 @@ export class AppAdminizer extends AbstractApp {
 
    }
 
+  private async normalizeSqliteDatetimeColumns(): Promise<void> {
+    if (this.appManager.sequelize.getDialect() !== "sqlite") {
+      return;
+    }
+
+    await this.appManager.sequelize.query(`
+      UPDATE navigationap
+      SET
+        "createdAt" = CASE
+          WHEN typeof("createdAt") = 'integer'
+          THEN strftime('%Y-%m-%d %H:%M:%f +00:00', "createdAt" / 1000, 'unixepoch')
+          ELSE "createdAt"
+        END,
+        "updatedAt" = CASE
+          WHEN typeof("updatedAt") = 'integer'
+          THEN strftime('%Y-%m-%d %H:%M:%f +00:00', "updatedAt" / 1000, 'unixepoch')
+          ELSE "updatedAt"
+        END
+      WHERE typeof("createdAt") = 'integer' OR typeof("updatedAt") = 'integer'
+    `);
+  }
+
   async mount(): Promise<void> {
     // Register system models but skip sync when using migrations
     await SequelizeAdapter.registerSystemModels(this.appManager.sequelize, process.env.ORM_ALTER !== 'false');
+    await this.normalizeSqliteDatetimeColumns();
     // Ensure Adminizer is fully initialized (inertia, routes, etc.) before applying custom logic
 
 
@@ -156,7 +195,7 @@ class AdminizerModelConfigHandler {
       // const model = new this.sequelizeAdapter.Model(item.modelname, registeredModel);
       // this.adminizer.modelHandler.add(item.modelname, model);
     }) 
-    const config = JSON.parse(JSON.stringify(this.adminizer.config));
+    const config = safeCloneConfig(this.adminizer.config);
     const adminizerAny = this.adminizer as any;
     adminizerAny.config = undefined;
     this.adminizer.config = config
