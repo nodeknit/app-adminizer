@@ -22,7 +22,7 @@
     "url": "git+https://github.com/nodeknit/app-adminizer.git"
   },
   "dependencies": {
-    "adminizer": "^4.5.0",
+    "adminizer": "4.5.1",
     "ajv": "^8.17.1",
     "express": "^4.21.2",
     "pg": "^8.13.3",
