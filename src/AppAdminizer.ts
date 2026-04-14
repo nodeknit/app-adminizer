@@ -36,23 +36,23 @@ class ConfigProcessor {
     this.adminizer = adminizer
     this.appDefaultConfig = safeCloneConfig(adminizer.config);
     this.isInitialized = true
-    this.adminizer.config =  {...this.adminizer.defaultConfig, ...this.appDefaultConfig,  ...this.preRunConfig}
+    this.adminizer.config = { ...this.adminizer.defaultConfig, ...this.appDefaultConfig, ...this.preRunConfig }
     // console.log(this.adminizer.config)
   }
 
-  updateModelConfig(config: AbstractModelConfig){
-    this.adminizer.config.models[config.modelname.toLowerCase()] = config.config
+  updateModelConfig(config: AbstractModelConfig) {
+    this.adminizer.config.models[config.modelname] = config.config
   }
 
-  updateConfig(config: AdminpanelConfig){
+  updateConfig(config: AdminpanelConfig) {
     console.log(this.isInitialized, "this.isInitialized")
 
-    if(this.isInitialized) {
-      this.adminizer.config  = {...this.appDefaultConfig, ...config}
+    if (this.isInitialized) {
+      this.adminizer.config = { ...this.appDefaultConfig, ...config }
       console.log(this.adminizer.config, "preRunConfig", config)
 
     } else {
-      this.preRunConfig = {...this.appDefaultConfig, ...config}
+      this.preRunConfig = { ...this.appDefaultConfig, ...config }
     }
   }
 }
@@ -85,11 +85,11 @@ export class AppAdminizer extends AbstractApp {
 
   constructor(appManager: AppManager, config?: AdminizerConfig) {
     super(appManager);
-    if(config) {
+    if (config) {
       this.config = config
     }
 
-   }
+  }
 
   private async normalizeSqliteDatetimeColumns(): Promise<void> {
     if (this.appManager.sequelize.getDialect() !== "sqlite") {
@@ -149,12 +149,12 @@ export class AppAdminizer extends AbstractApp {
 
 
 class AdminizerConfigHandler {
-  configProcessor: ConfigProcessor 
-  constructor(configProcessor: ConfigProcessor ) {
+  configProcessor: ConfigProcessor
+  constructor(configProcessor: ConfigProcessor) {
     this.configProcessor = configProcessor
   }
   async process(appManager: AppManager, data: LocalCollectionItem[]): Promise<void> {
-    data.forEach((item)=>{
+    data.forEach((item) => {
       this.configProcessor.updateConfig(item.item);
     })
   }
@@ -168,9 +168,9 @@ export type AdminizerModelConfigCollectionItem = LocalCollectionItem & {
 }
 
 class AdminizerModelConfigHandler {
-  adminizer: Adminizer 
+  adminizer: Adminizer
   sequelizeAdapter: SequelizeAdapter
-  configProcessor: ConfigProcessor 
+  configProcessor: ConfigProcessor
   constructor(
     adminizer: Adminizer,
     sequelizeAdapter: SequelizeAdapter,
@@ -185,30 +185,41 @@ class AdminizerModelConfigHandler {
   //   this.sequelizeAdapter = sequelizeAdapter
   // }
   async process(appManager: AppManager, data: AdminizerModelConfigCollectionItem[]): Promise<void> {
-    data.forEach((collectionItem)=>{
+    data.forEach(async (collectionItem) => {
       let item: AbstractModelConfig = collectionItem.item
       // console.log(item)
 
 
       this.configProcessor.updateModelConfig(item);
-      // const registeredModel = this.sequelizeAdapter.getModel(item.modelname);
-      // const model = new this.sequelizeAdapter.Model(item.modelname, registeredModel);
-      // this.adminizer.modelHandler.add(item.modelname, model);
-    }) 
+      const registeredModel = this.sequelizeAdapter.getModel(item.modelname);
+      const model = new this.sequelizeAdapter.Model(item.modelname, registeredModel);
+      this.adminizer.modelHandler.add(item.modelname, model);
+      await this.adminizer.router.bindModelRoutes(item.modelname)
+      this.adminizer.accessRightsHelper.registerModelTokens(item.modelname)
+      // need add routes for CRUD model
+    })
     const config = safeCloneConfig(this.adminizer.config);
     const adminizerAny = this.adminizer as any;
     adminizerAny.config = undefined;
     this.adminizer.config = config
+    // Sync menuHelper reference after config object replacement
+    if (adminizerAny.menuHelper) {
+      adminizerAny.menuHelper.config = this.adminizer.config;
+    }
+
     // this.adminizer.init(config)
   }
 
-    async unprocess(appManager: AppManager, data: AdminizerModelConfigCollectionItem[]): Promise<void> {
-      console.log(data)
-    }
+  async unprocess(appManager: AppManager, data: AdminizerModelConfigCollectionItem[]): Promise<void> {
+    data.forEach(async (collectionItem) => {
+      let item: AbstractModelConfig = collectionItem.item
+      await this.adminizer.router.unbindModelRoutes(item.modelname)
+    });
   }
-  /**
-   * Collection handler for registering custom middleware on the Adminizer Express app
-   */
+}
+/**
+ * Collection handler for registering custom middleware on the Adminizer Express app
+ */
 class AdminizerMiddlewareHandler {
   private adminizer: Adminizer;
   private middlewares: LocalCollectionItem[] = [];
@@ -218,7 +229,7 @@ class AdminizerMiddlewareHandler {
   }
 
   public getMiddleware() {
-      return this.middlewareDispatcher();
+    return this.middlewareDispatcher();
   }
 
   /**
