@@ -109,12 +109,26 @@ export function generateAdminizerModelConfig(
       model: modelMeta.model ?? modelClass.name,
       title: modelMeta.title ?? modelClass.name,
       icon: modelMeta.icon ?? 'star',
-      add: { fields: {} },
-      edit: { fields: {} },
       fields: {},
-      list: { fields: {} },
       ...options.override,
-      ...modelMeta
+      ...modelMeta,
+      // Deep-merge list/add/edit so that `fields: {}` is never lost
+      // when modelMeta supplies only partial config (e.g. list: { filter: {...} })
+      add: {
+        fields: {},
+        ...(typeof options.override?.add === 'object' ? options.override.add : {}),
+        ...(typeof modelMeta.add === 'object' ? modelMeta.add : {}),
+      },
+      edit: {
+        fields: {},
+        ...(typeof options.override?.edit === 'object' ? options.override.edit : {}),
+        ...(typeof modelMeta.edit === 'object' ? modelMeta.edit : {}),
+      },
+      list: {
+        fields: {},
+        ...(typeof options.override?.list === 'object' ? options.override.list : {}),
+        ...(typeof modelMeta.list === 'object' ? modelMeta.list : {}),
+      },
     };
     for (const [field, meta] of Object.entries(fieldMeta)) {
       if (exclude.has(field)) {

@@ -237,13 +237,11 @@ class AdminizerMiddlewareHandler {
    */
   private middlewareDispatcher() {
     return (req: Request, res: Response, next: NextFunction) => {
-      // Ensure adminizer middlewares run only for requests under routePrefix
+      // adminizer.app routes are registered with full path (routePrefix + route),
+      // so req.path contains the full path e.g. /dashboard/integrations.
+      // item.route is the short route e.g. /integrations — prepend routePrefix for comparison.
       const routePrefix = this.adminizer?.config?.routePrefix || '';
-      if (routePrefix && !req.path.startsWith(routePrefix)) {
-        return next();
-      }
       const method = req.method.toLowerCase();
-      console.log(this.middlewares)
       const stack = this.middlewares
         .map(({ item }) => {
           if (typeof item === 'function') {
@@ -255,7 +253,8 @@ class AdminizerMiddlewareHandler {
             typeof item === 'object' &&
             typeof item.handler === 'function'
           ) {
-            const routeMatch = !item.route || req.path.startsWith(item.route);
+            const fullRoute = item.route ? `${routePrefix}${item.route}` : null;
+            const routeMatch = !fullRoute || req.path === fullRoute || req.path.startsWith(fullRoute + '/');
             const methodMatch =
               !item.method ||
               item.method.toLowerCase() === method ||
@@ -291,6 +290,21 @@ class AdminizerMiddlewareHandler {
    */
   async process(appManager: AppManager, data: LocalCollectionItem[]): Promise<void> {
     this.middlewares.push(...data);
+
+    // Register explicit routes on adminizer.app so Express doesn't 404 them
+    const routePrefix = this.adminizer?.config?.routePrefix || '';
+    for (const { item } of data) {
+      if (item && typeof item === 'object' && typeof item.handler === 'function' && item.route) {
+        const fullPath = `${routePrefix}${item.route}`;
+        const method: string = item.method?.toLowerCase() ?? 'use';
+        if (typeof (this.adminizer.app as any)[method] === 'function') {
+          (this.adminizer.app as any)[method](fullPath, (_req: Request, _res: Response, next: NextFunction) => {
+            // handled by middlewareDispatcher via defaultMiddleware
+            next();
+          });
+        }
+      }
+    }
   }
 
   /**
