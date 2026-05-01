@@ -1,9 +1,10 @@
 import { AppManager, CollectionHandler, AbstractApp, Collection } from "@nodeknit/app-manager";
-import { Adminizer, AdminizerConfig, AdminpanelConfig, Migration, SequelizeAdapter, migrations } from "adminizer"
+import { Adminizer, AdminizerConfig, AdminpanelConfig, Migration, SequelizeAdapter } from "adminizer"
 import path from 'path';
 import serveStatic from 'serve-static';
 import { Request, Response, NextFunction } from 'express';
 import { AbstractModelConfig } from "./abstract/AbstractModelConfig";
+import { migrations } from "./migrations";
 
 // Local minimal typings to avoid relying on internal exports of app-manager
 type LocalCollectionItem = { appId: string; item: any };

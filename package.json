@@ -7,7 +7,7 @@
   "typings": "index.d.ts",
   "scripts": {
     "test": "vitest",
-    "build": "tsc -p tsconfig.json",
+    "build": "rm -rf dist && tsc -p tsconfig.json",
     "fixture-start": "node ./fixture/index.js",
     "start": "node ./dist/index.js",
     "package:prepare": "node ./scripts/prepare-package.mjs",
