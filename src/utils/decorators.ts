@@ -143,8 +143,9 @@ export function generateAdminizerModelConfig(
         disabled: meta.disabled ?? false,
         type: meta.type ?? 'text',
         ...meta.tooltip && {tooltip: meta.tooltip},
-        ...meta.isIn && {isIn: meta.isIn}, 
+        ...meta.isIn && {isIn: meta.isIn},
         ...(meta.options ? { options: meta.options } : {}),
+        ...(meta.groupsAccessRights ? { groupsAccessRights: meta.groupsAccessRights } : {}),
       };
       let _viewsConfig = null;
       if(typeof meta.views === "boolean") {
@@ -158,28 +159,20 @@ export function generateAdminizerModelConfig(
       }
 
 
-      // console.log(_viewsConfig, "<<", field)
-      // views.list → list.fields
-      if (_viewsConfig?.list) {
-        if (config.list && typeof config.list !== 'boolean') {
-          config.list.fields![field] = _viewsConfig.list;
-        }
-      }
-  
       // views.add → add.fields
       if (_viewsConfig?.add) {
         if (config.add && typeof config.add !== 'boolean') {
           config.add.fields![field] = _viewsConfig.add;
         }
       }
-  
+
       // views.edit → edit.fields
       if (_viewsConfig?.edit) {
         if (config.edit && typeof config.edit !== 'boolean') {
           config.edit.fields![field] = _viewsConfig.edit;
         }
       }
-  
+
       if (_viewsConfig?.list) {
         if (config.list && typeof config.list !== 'boolean') {
           config.list.fields![field] = _viewsConfig.list;
