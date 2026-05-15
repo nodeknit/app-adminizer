@@ -132,7 +132,7 @@ export function generateAdminizerModelConfig(
     };
     for (const [field, meta] of Object.entries(fieldMeta)) {
       if (exclude.has(field)) {
-        config.fields![field] = false;
+        config.fields![field] = { visible: false };
         continue;
       }
   
@@ -159,28 +159,28 @@ export function generateAdminizerModelConfig(
       }
 
 
-      // views.add → add.fields
-      if (_viewsConfig?.add) {
-        if (config.add && typeof config.add !== 'boolean') {
-          config.add.fields![field] = _viewsConfig.add;
-        }
+      // Normalize view value to object (adminizer v5+ requires object configs, not boolean/string)
+      const normalizeView = (v: any): object | undefined => {
+        if (v === undefined || v === null) return undefined;
+        if (v === false) return { visible: false };
+        if (v === true) return {};
+        if (typeof v === 'object') return v;
+        return undefined;
+      };
+
+      const addCfg = normalizeView(_viewsConfig?.add);
+      if (addCfg && config.add && typeof config.add !== 'boolean') {
+        config.add.fields![field] = addCfg;
       }
 
-      // views.edit → edit.fields
-      if (_viewsConfig?.edit) {
-        if (config.edit && typeof config.edit !== 'boolean') {
-          config.edit.fields![field] = _viewsConfig.edit;
-        }
+      const editCfg = normalizeView(_viewsConfig?.edit);
+      if (editCfg && config.edit && typeof config.edit !== 'boolean') {
+        config.edit.fields![field] = editCfg;
       }
 
-      if (_viewsConfig?.list) {
-        if (config.list && typeof config.list !== 'boolean') {
-          config.list.fields![field] = _viewsConfig.list;
-        }
-      } else {
-        if (config.list && typeof config.list !== 'boolean') {
-          config.list.fields![field] = {};
-        }
+      const listCfg = normalizeView(_viewsConfig?.list);
+      if (config.list && typeof config.list !== 'boolean') {
+        config.list.fields![field] = listCfg ?? {};
       }
     }
   
@@ -188,7 +188,7 @@ export function generateAdminizerModelConfig(
     
     for (const field of exclude) {
       if (!(field in config.fields!)) {
-        config.fields![field] = false;
+        config.fields![field] = { visible: false };
       }
     }
   
