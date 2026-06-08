@@ -25,6 +25,7 @@
     "adminizer": "4.6.0-build.220",
     "ajv": "^8.17.1",
     "express": "^4.21.2",
+    "password-hash": "^1.2.2",
     "pg": "^8.13.3",
     "semver": "^7.7.1",
     "typescript": "^5.8.2",
@@ -32,12 +33,15 @@
   },
   "peerDependencies": {
     "reflect-metadata": "^0.2.2",
-    "@nodeknit/app-manager": "*"
+    "@nodeknit/app-manager": "*",
+    "@nodeknit/app-mcp": "*"
   },
   "devDependencies": {
     "reflect-metadata": "^0.2.2",
     "@nodeknit/app-manager": "commit",
+    "@nodeknit/app-mcp": "file:../app-mcp",
     "@types/express": "^5.0.0",
+    "@types/password-hash": "^1.2.24",
     "@types/pg": "^8.11.11",
     "@types/semver": "^7.5.8",
     "sequelize": "^6.37.5",

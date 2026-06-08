@@ -3,8 +3,10 @@ import { Adminizer, AdminizerConfig, AdminpanelConfig, Migration, SequelizeAdapt
 import path from 'path';
 import serveStatic from 'serve-static';
 import { Request, Response, NextFunction } from 'express';
+import type { IMcpTool } from "@nodeknit/app-mcp";
 import { AbstractModelConfig } from "./abstract/AbstractModelConfig";
 import { migrations } from "./migrations";
+import { userTool } from "./mcp/userTool";
 
 // Local minimal typings to avoid relying on internal exports of app-manager
 type LocalCollectionItem = { appId: string; item: any };
@@ -69,6 +71,12 @@ export class AppAdminizer extends AbstractApp {
 
   @Collection
   migrations: Migration[] = migrations.umzug
+
+  @Collection
+  mcpTools: IMcpTool[] = [
+    userTool
+  ]
+
   @CollectionHandler('adminizerModelConfigs')
   adminizerModelConfigs: AdminizerModelConfigHandler = new AdminizerModelConfigHandler(
     this.adminizer,
