@@ -1,4 +1,4 @@
-import type { Migration } from "adminizer";
+import type { Migration } from "./types";
 import { up as up0001, down as down0001 } from "./umzug/0001";
 
 export const umzugExports: Migration[] = [

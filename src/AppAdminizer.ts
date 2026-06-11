@@ -1,11 +1,12 @@
 import { AppManager, CollectionHandler, AbstractApp, Collection } from "@nodeknit/app-manager";
-import { Adminizer, AdminizerConfig, AdminpanelConfig, Migration, SequelizeAdapter } from "adminizer"
+import { Adminizer, AdminizerConfig, AdminpanelConfig, SequelizeAdapter } from "adminizer"
 import path from 'path';
 import serveStatic from 'serve-static';
 import { Request, Response, NextFunction } from 'express';
 import type { IMcpTool } from "@nodeknit/app-mcp";
 import { AbstractModelConfig } from "./abstract/AbstractModelConfig";
 import { migrations } from "./migrations";
+import type { Migration } from "./migrations/types";
 import { userTool } from "./mcp/userTool";
 
 // Local minimal typings to avoid relying on internal exports of app-manager
