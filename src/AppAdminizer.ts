@@ -3,7 +3,7 @@ import { Adminizer, AdminizerConfig, AdminpanelConfig, SequelizeAdapter } from "
 import path from 'path';
 import serveStatic from 'serve-static';
 import { Request, Response, NextFunction } from 'express';
-import type { IMcpTool } from "@nodeknit/app-mcp";
+import type { IMcpTool } from "./mcp/types";
 import { AbstractModelConfig } from "./abstract/AbstractModelConfig";
 import { migrations } from "./migrations";
 import type { Migration } from "./migrations/types";

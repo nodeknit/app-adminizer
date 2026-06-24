@@ -1,5 +1,5 @@
 import { generate } from "password-hash";
-import type { IMcpTool } from "@nodeknit/app-mcp";
+import type { IMcpTool } from "./types";
 
 const MCP_DOC_REF = "docs/mcp-usage.md";
 

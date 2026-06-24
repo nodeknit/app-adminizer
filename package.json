@@ -33,13 +33,11 @@
   },
   "peerDependencies": {
     "reflect-metadata": "^0.2.2",
-    "@nodeknit/app-manager": "*",
-    "@nodeknit/app-mcp": "*"
+    "@nodeknit/app-manager": "*"
   },
   "devDependencies": {
     "reflect-metadata": "^0.2.2",
     "@nodeknit/app-manager": "commit",
-    "@nodeknit/app-mcp": "commit",
     "@types/express": "^5.0.0",
     "@types/password-hash": "^1.2.24",
     "@types/pg": "^8.11.11",
