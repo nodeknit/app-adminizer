@@ -8,6 +8,7 @@ import { AbstractModelConfig } from "./abstract/AbstractModelConfig";
 import { migrations } from "./migrations";
 import type { Migration } from "./migrations/types";
 import { userTool } from "./mcp/userTool";
+import { registerSequelizeSystemModels, buildSystemModelBindings } from "./system/systemModels";
 
 // Local minimal typings to avoid relying on internal exports of app-manager
 type LocalCollectionItem = { appId: string; item: any };
@@ -67,7 +68,11 @@ export class AppAdminizer extends AbstractApp {
   readonly name: string = "Adminizer";
   public config: AdminizerConfig = {} as AdminizerConfig
   configProcessor = new ConfigProcessor()
-  sequelizeAdapter = new SequelizeAdapter(this.appManager.sequelize)
+  sequelizeAdapter = new SequelizeAdapter(this.appManager.sequelize, {
+    // Honour any @AdminizerSystemModel overrides declared on host models;
+    // the registry is populated at import time, before this app is constructed.
+    systemModels: buildSystemModelBindings(),
+  })
   adminizer = new Adminizer([this.sequelizeAdapter]);
 
   @Collection
@@ -106,6 +111,16 @@ export class AppAdminizer extends AbstractApp {
       return;
     }
 
+    // Legacy one-time cleanup of integer timestamps left in the navigation
+    // table. Since Adminizer 5.0 navigation is no longer a built-in subsystem,
+    // so the table may not exist — skip the cleanup when it is absent.
+    const [tables] = await this.appManager.sequelize.query(
+      `SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'navigationap'`
+    );
+    if ((tables as unknown[]).length === 0) {
+      return;
+    }
+
     await this.appManager.sequelize.query(`
       UPDATE navigationap
       SET
@@ -124,8 +139,17 @@ export class AppAdminizer extends AbstractApp {
   }
 
   async mount(): Promise<void> {
-    // Register system models but skip sync when using migrations
-    await SequelizeAdapter.registerSystemModels(this.appManager.sequelize, process.env.ORM_ALTER !== 'false');
+    // Since Adminizer 5.0 the host owns the system models: define them on the
+    // shared Sequelize instance and pass the logical→host map to the adapter
+    // (see `SEQUELIZE_SYSTEM_MODELS`). Replaces the removed
+    // `SequelizeAdapter.registerSystemModels()` static.
+    registerSequelizeSystemModels(this.appManager.sequelize);
+    // Create any system tables missing from migrations (e.g. filter/history).
+    // sync() is non-destructive (CREATE TABLE IF NOT EXISTS); skip when the
+    // host manages schema strictly via migrations.
+    if (process.env.ORM_ALTER !== 'false') {
+      await this.appManager.sequelize.sync();
+    }
     await this.normalizeSqliteDatetimeColumns();
     // Ensure Adminizer is fully initialized (inertia, routes, etc.) before applying custom logic
 
@@ -150,6 +174,27 @@ export class AppAdminizer extends AbstractApp {
     // Initialize config processor and apply any model/config collections
     this.configProcessor.init(this.adminizer);
     this.adminizerModelConfigs;
+  }
+
+  /**
+   * Refresh the Adminizer runtime after domain apps have registered their
+   * model configs.
+   *
+   * Pre-5.0 hosts re-ran `adminizer.init()` here. Adminizer 5.0 forbids that:
+   * `init()` throws once `config` is set, and its stateful handlers (controls,
+   * access rights) reject re-registration ("Control ... already exists"). It is
+   * also unnecessary — `AdminizerModelConfigHandler` already adds each model to
+   * `config.models`, binds its CRUD routes and registers its access tokens, and
+   * the sidebar menu is rebuilt per request from `config.models`. We only
+   * normalise the config object so any later mutation keeps a stable reference.
+   */
+  async reload(): Promise<void> {
+    const config = safeCloneConfig(this.adminizer.config);
+    const adminizerAny = this.adminizer as any;
+    adminizerAny.config = config;
+    if (adminizerAny.menuHelper) {
+      adminizerAny.menuHelper.config = config;
+    }
   }
 
   async unmount(): Promise<void> {
