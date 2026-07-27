@@ -169,6 +169,57 @@ function wireSystemAssociations(models: ModelMap): void {
 }
 
 /**
+ * Media manager is not a logical Adminizer system model, but its tables are
+ * owned by Adminizer. Keep their Sequelize definitions here so hosts using
+ * sync() get the same schema as hosts using Adminizer migrations.
+ */
+function registerMediaManagerModels(orm: Sequelize): void {
+  const media = orm.models.MediaManagerAP ?? orm.define(
+    "MediaManagerAP",
+    {
+      id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+      parentId: { type: DataTypes.UUID, allowNull: true },
+      mimeType: DataTypes.STRING,
+      path: DataTypes.STRING,
+      size: DataTypes.INTEGER,
+      group: DataTypes.STRING,
+      tag: DataTypes.STRING,
+      url: DataTypes.STRING,
+      filename: DataTypes.STRING,
+    },
+    systemModelOptions("MediaManagerAP"),
+  );
+  const meta = orm.models.MediaManagerMetaAP ?? orm.define(
+    "MediaManagerMetaAP",
+    {
+      id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+      key: DataTypes.STRING,
+      value: DataTypes.JSON,
+      isPublic: DataTypes.BOOLEAN,
+      parentId: DataTypes.UUID,
+    },
+    systemModelOptions("MediaManagerMetaAP"),
+  );
+  const associations = orm.models.MediaManagerAssociationsAP ?? orm.define(
+    "MediaManagerAssociationsAP",
+    {
+      id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+      mediaManagerId: DataTypes.STRING,
+      model: DataTypes.STRING,
+      modelId: DataTypes.STRING,
+      widgetName: DataTypes.STRING,
+      sortOrder: DataTypes.INTEGER,
+      fileId: DataTypes.UUID,
+    },
+    systemModelOptions("MediaManagerAssociationsAP"),
+  );
+
+  media.hasMany(media, { as: "variants", foreignKey: "parentId" });
+  media.hasMany(meta, { as: "meta", foreignKey: "parentId" });
+  media.hasMany(associations, { as: "modelAssociation", foreignKey: "fileId" });
+}
+
+/**
  * Define Adminizer's system models on the host Sequelize instance.
  *
  * Replaces the removed `SequelizeAdapter.registerSystemModels()` static. For
@@ -200,5 +251,6 @@ export function registerSequelizeSystemModels(orm: Sequelize): SystemModelBindin
   }
 
   wireSystemAssociations(models);
+  registerMediaManagerModels(orm);
   return buildSystemModelBindings();
 }

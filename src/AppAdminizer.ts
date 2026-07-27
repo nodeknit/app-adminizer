@@ -9,6 +9,7 @@ import { migrations } from "./migrations";
 import type { Migration } from "./migrations/types";
 import { userTool } from "./mcp/userTool";
 import { registerSequelizeSystemModels, buildSystemModelBindings } from "./system/systemModels";
+import { SequelizeMediaManager } from "./media/SequelizeMediaManager";
 
 // Local minimal typings to avoid relying on internal exports of app-manager
 type LocalCollectionItem = { appId: string; item: any };
@@ -156,6 +157,17 @@ export class AppAdminizer extends AbstractApp {
 
     this.adminizer.defaultMiddleware = this.adminizerMiddlewareHandler.getMiddleware()
     await this.adminizer.init(this.config as unknown as AdminizerConfig);
+    const mediaStoragePath = this.adminizer.config.mediamanager?.fileStoragePath;
+    if (mediaStoragePath && !this.adminizer.mediaManagerHandler.get("default")) {
+      this.adminizer.mediaManagerHandler.add(
+        new SequelizeMediaManager(this.adminizer, this.appManager.sequelize, mediaStoragePath),
+      );
+    }
+    // Adminizer's internal `/public` route is nested below routePrefix when
+    // mounted by NodeKnit. Media widgets and site pages use the root URL.
+    if (this.adminizer.config.bind?.public && mediaStoragePath) {
+      this.appManager.app.use("/public", serveStatic(mediaStoragePath));
+    }
 
     // Serve custom Inertia modules built by Vite
     this.appManager.app.use(
