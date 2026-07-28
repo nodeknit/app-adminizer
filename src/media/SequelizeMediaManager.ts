@@ -83,7 +83,7 @@ class SequelizeImageFile extends File<MediaRecord> {
 /** Default filesystem-backed media manager for Sequelize hosts. */
 export class SequelizeMediaManager extends AbstractMediaManager {
   id = "default";
-  fileStoragePath: string;
+  declare fileStoragePath: string;
   urlPathPrefix = "media";
   allowSearch = true;
   uploadMaxBytes = 5 * 1024 * 1024;
@@ -209,7 +209,7 @@ export class SequelizeMediaManager extends AbstractMediaManager {
       order: [["sortOrder", "ASC"]],
     });
     const items = await Promise.all(relations.map((relation: any) => this.mediaModel.findByPk(relation.fileId)));
-    return items.filter(Boolean).map((record: any) => {
+    return items.filter(Boolean).map((record: any): MediaManagerWidgetClientItem => {
       const item = toItem(record);
       return { id: item.id, mimeType: item.mimeType, filename: item.filename, url: item.url, variants: [] };
     });
@@ -268,7 +268,7 @@ export class SequelizeMediaManager extends AbstractMediaManager {
     const record = await this.mediaModel.findByPk(id);
     if (!record) return false;
     for (const item of [...records, record]) {
-      await fs.unlink(item.path).catch(() => undefined);
+      await fs.unlink(item.path).catch((): void => {});
       await this.metaModel.destroy({ where: { parentId: item.id } });
       await item.destroy();
     }
