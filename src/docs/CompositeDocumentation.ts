@@ -9,6 +9,7 @@ import {
 } from "adminizer";
 import {
   DOCUMENTATION_NAMESPACE_SEPARATOR as SEPARATOR,
+  DocumentationDocumentOptions,
   DocumentationSource,
   isFileDocumentationSource,
   isProviderDocumentationSource,
@@ -20,6 +21,10 @@ interface MountedSource {
   provider: AbstractDocumentation;
   section?: string;
   accessRightsToken?: string;
+  /** Per-document rights the module declared in the collection, by source-local id. */
+  documents: Record<string, DocumentationDocumentOptions>;
+  /** Ids from `documents` that have been matched by a real document at least once. */
+  matchedDocuments: Set<string>;
   /** Only file sources have one; stopping it is what makes `remove()` leave nothing behind. */
   stop?: () => void;
 }
@@ -42,8 +47,11 @@ interface MountedSource {
 export class CompositeDocumentation extends AbstractDocumentation {
   private readonly sources: MountedSource[] = [];
   private readonly changeCallbacks: Array<(ids?: string[]) => void> = [];
-  /** Ids already reported as duplicated, so a collision is logged once and not on every request. */
-  private readonly reportedCollisions = new Set<string>();
+  /**
+   * Everything already complained about (duplicate ids, rights declared for a document that does
+   * not exist), so a misconfiguration is logged once instead of on every request.
+   */
+  private readonly reported = new Set<string>();
 
   get size(): number {
     return this.sources.length;
@@ -76,6 +84,8 @@ export class CompositeDocumentation extends AbstractDocumentation {
       provider,
       section: source.section,
       accessRightsToken: source.accessRightsToken,
+      documents: source.documents ?? {},
+      matchedDocuments: new Set<string>(),
       stop: provider instanceof FileDocumentation ? () => provider.stopWatcher() : undefined,
     };
     this.sources.push(mounted);
@@ -104,7 +114,7 @@ export class CompositeDocumentation extends AbstractDocumentation {
     if (removed === 0) return 0;
     this.sources.length = 0;
     this.sources.push(...kept);
-    this.reportedCollisions.clear();
+    this.reported.clear();
     this.emitChange();
     return removed;
   }
@@ -112,7 +122,7 @@ export class CompositeDocumentation extends AbstractDocumentation {
   clear(): void {
     for (const source of this.sources) source.stop?.();
     this.sources.length = 0;
-    this.reportedCollisions.clear();
+    this.reported.clear();
     this.emitChange();
   }
 
@@ -121,6 +131,7 @@ export class CompositeDocumentation extends AbstractDocumentation {
     for (const source of this.sources) {
       const metas = await this.fromSource(source, () => source.provider.list(locale), []);
       for (const meta of metas) this.collect(documents, source, meta);
+      this.reportUnmatchedDocuments(source);
     }
     return [...documents.values()];
   }
@@ -246,20 +257,45 @@ export class CompositeDocumentation extends AbstractDocumentation {
     return source ? { source, localId } : undefined;
   }
 
+  /**
+   * What the collection said about this document wins over what the document says about itself:
+   * the token is a decision of the module, and an article's text must not be able to change who
+   * may read it. Frontmatter is still honoured where the collection is silent — that is
+   * adminizer's own convention, and restricting your own article is harmless.
+   */
   private decorate(source: MountedSource, meta: DocMeta): DocMeta {
+    const declared = source.documents[meta.id];
+    if (declared) source.matchedDocuments.add(meta.id);
     return {
       ...meta,
       id: this.qualify(source.namespace, meta.id),
-      section: meta.section ?? source.section,
-      accessRightsToken: meta.accessRightsToken ?? source.accessRightsToken,
+      section: declared?.section ?? meta.section ?? source.section,
+      accessRightsToken: declared?.accessRightsToken ?? meta.accessRightsToken ?? source.accessRightsToken,
     };
+  }
+
+  /**
+   * A `documents` entry naming an id no document has is almost always a typo in the id, and its
+   * only visible effect would be a token that quietly never applies — so it is reported. Only a
+   * full `list()` can tell, since that is the one call that sees every document of a source.
+   */
+  private reportUnmatchedDocuments(source: MountedSource): void {
+    for (const id of Object.keys(source.documents)) {
+      if (source.matchedDocuments.has(id) || this.reported.has(`${source.namespace}!${id}`)) {
+        continue;
+      }
+      this.reported.add(`${source.namespace}!${id}`);
+      Adminizer.log.warn(
+        `[documentation] ${source.appId} declared rights for "${id}", but source "${source.namespace}" has no such document`,
+      );
+    }
   }
 
   private collect(documents: Map<string, DocMeta>, source: MountedSource, meta: DocMeta): void {
     const decorated = this.decorate(source, meta);
     if (documents.has(decorated.id)) {
-      if (!this.reportedCollisions.has(decorated.id)) {
-        this.reportedCollisions.add(decorated.id);
+      if (!this.reported.has(decorated.id)) {
+        this.reported.add(decorated.id);
         Adminizer.log.warn(
           `[documentation] duplicate document id "${decorated.id}"; the first source keeps it`,
         );

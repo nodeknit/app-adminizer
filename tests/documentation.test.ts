@@ -1,9 +1,10 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import {
   AbstractDocumentation,
+  Adminizer,
   type DocContent,
   type DocMeta,
   type DocSearchQuery,
@@ -89,6 +90,30 @@ describe("CompositeDocumentation", () => {
     expect(own.accessRightsToken).toBe("read-other");
   });
 
+  it("lets the collection decide a document's token over what the document declares", async () => {
+    const registry = new CompositeDocumentation();
+    registry.add("app-one", {
+      accessRightsToken: "read-default",
+      documents: {
+        secret: { accessRightsToken: "read-secret", section: "Internal" },
+      },
+      provider: new MemoryDocumentation([
+        doc("secret", { accessRightsToken: "read-from-frontmatter", section: "Public" }),
+        doc("own", { accessRightsToken: "read-from-frontmatter" }),
+        doc("plain"),
+      ]),
+    });
+
+    const [secret, own, plain] = await registry.list();
+    // Declared in the collection: wins over the frontmatter.
+    expect(secret.accessRightsToken).toBe("read-secret");
+    expect(secret.section).toBe("Internal");
+    // Not declared there: the document's own frontmatter still counts.
+    expect(own.accessRightsToken).toBe("read-from-frontmatter");
+    // Neither: the source-wide default.
+    expect(plain.accessRightsToken).toBe("read-default");
+  });
+
   it("keeps the first document when two sources produce the same id", async () => {
     const registry = new CompositeDocumentation();
     registry.add("app-one", {
@@ -103,6 +128,16 @@ describe("CompositeDocumentation", () => {
     const documents = await registry.list();
     expect(documents).toHaveLength(1);
     expect(documents[0].title).toBe("first");
+  });
+
+  it("applies the declared rights to a single document fetched by id", async () => {
+    const registry = new CompositeDocumentation();
+    registry.add("app-one", {
+      documents: { secret: { accessRightsToken: "read-secret" } },
+      provider: new MemoryDocumentation([doc("secret")]),
+    });
+
+    expect((await registry.get("app-one.secret"))?.meta.accessRightsToken).toBe("read-secret");
   });
 
   it("delegates search to the sources instead of scanning list()/get() itself", async () => {
@@ -133,6 +168,25 @@ describe("CompositeDocumentation", () => {
     expect(await registry.resolveLink("app-one.intro", "app-two.intro")).toBe("app-two.intro");
     expect(await registry.resolveLink("app-one.intro", "app-two.missing")).toBeUndefined();
     expect(await registry.resolveLink("app-one.intro", "nowhere")).toBeUndefined();
+  });
+
+  it("reports rights declared for a document the source does not have", async () => {
+    const warn = vi.spyOn(Adminizer.logger, "warn").mockImplementation(() => Adminizer.logger);
+    try {
+      const registry = new CompositeDocumentation();
+      registry.add("app-one", {
+        documents: { taks: { accessRightsToken: "read-secret" } },
+        provider: new MemoryDocumentation([doc("tasks")]),
+      });
+
+      await registry.list();
+      await registry.list();
+      const complaints = warn.mock.calls.filter((call) => String(call[0]).includes('"taks"'));
+      // Once, not once per request.
+      expect(complaints).toHaveLength(1);
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("keeps one broken source from taking the whole knowledge base down", async () => {
