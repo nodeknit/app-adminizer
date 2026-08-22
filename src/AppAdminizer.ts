@@ -10,6 +10,8 @@ import type { Migration } from "./migrations/types";
 import { userTool } from "./mcp/userTool";
 import { registerSequelizeSystemModels, buildSystemModelBindings } from "./system/systemModels";
 import { SequelizeMediaManager } from "./media/SequelizeMediaManager";
+import { CompositeDocumentation } from "./docs/CompositeDocumentation";
+import { DocumentationCollectionHandler } from "./docs/DocumentationCollectionHandler";
 
 // Local minimal typings to avoid relying on internal exports of app-manager
 type LocalCollectionItem = { appId: string; item: any };
@@ -99,6 +101,25 @@ export class AppAdminizer extends AbstractApp {
   @CollectionHandler('adminizerMiddlewares')
   adminizerMiddlewareHandler: AdminizerMiddlewareHandler = new AdminizerMiddlewareHandler(this.adminizer)
 
+  /**
+   * The knowledge base of the panel, assembled from what the installed modules contributed to the
+   * `documentation` collection. Adminizer accepts exactly one `AbstractDocumentation`, so this
+   * composite is the only implementation ever registered — see src/docs/.
+   */
+  documentationRegistry: CompositeDocumentation = new CompositeDocumentation()
+
+  /**
+   * Documentation contributed by modules: `{ dir }` for markdown on disk, `{ provider }` for a
+   * module that keeps its articles elsewhere. Mounting or unmounting a source also decides whether
+   * the subsystem is registered at all — with nothing contributed the panel has no knowledge base
+   * and adminizer keeps the whole feature invisible.
+   */
+  @CollectionHandler('documentation')
+  documentationCollectionHandler: DocumentationCollectionHandler = new DocumentationCollectionHandler(
+    this.documentationRegistry,
+    () => this.syncDocumentation(),
+  )
+
   constructor(appManager: AppManager, config?: AdminizerConfig) {
     super(appManager);
     if (config) {
@@ -186,6 +207,9 @@ export class AppAdminizer extends AbstractApp {
     // Initialize config processor and apply any model/config collections
     this.configProcessor.init(this.adminizer);
     this.adminizerModelConfigs;
+    // Sources contributed before this app was mounted are already in the registry; this is the
+    // call that turns them into a registered subsystem now that `init()` has read the config.
+    this.syncDocumentation();
   }
 
   /**
@@ -209,7 +233,38 @@ export class AppAdminizer extends AbstractApp {
     }
   }
 
+  /**
+   * Brings the documentation subsystem up once a module has actually contributed something, and
+   * takes it down again when the last source goes away — an empty knowledge base in the navigation
+   * would promise a page that has nothing to show.
+   *
+   * Registering before `adminizer.init()` is harmless: `DocumentationHandler.activate()` waits for
+   * `config.documentation.enabled` and is called again from `init()`. On an adminizer without the
+   * subsystem the whole method is a no-op, so the panel still mounts.
+   */
+  private syncDocumentation(): void {
+    const handler = (this.adminizer as any).documentationHandler;
+    if (!handler || typeof handler.register !== 'function') {
+      return;
+    }
+    try {
+      if (this.documentationRegistry.size > 0) {
+        if (!handler.isRegistered()) {
+          handler.register(this.documentationRegistry, this.appId);
+        }
+      } else if (handler.isRegistered()) {
+        handler.unregister(this.appId);
+      }
+    } catch (error: any) {
+      // A foreign implementation registered by the host wins; documentation is never worth
+      // failing the panel's boot over.
+      console.warn(`[app-adminizer] documentation not registered: ${error?.message ?? error}`);
+    }
+  }
+
   async unmount(): Promise<void> {
+    this.documentationRegistry.clear();
+    this.syncDocumentation();
     return Promise.resolve(undefined);
   }
 }
