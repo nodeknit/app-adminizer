@@ -10,7 +10,7 @@
   "typings": "index.d.ts",
   "scripts": {
     "test": "vitest",
-    "build": "rm -rf dist && tsc -p tsconfig.json",
+    "build": "rm -rf dist && tsc -p tsconfig.json && node ./scripts/appendJsExtension.mjs",
     "fixture-start": "node ./fixture/index.js",
     "start": "node ./dist/index.js",
     "package:prepare": "node ./scripts/prepare-package.mjs",
@@ -24,7 +24,7 @@
     "url": "git+https://github.com/nodeknit/app-adminizer.git"
   },
   "dependencies": {
-    "adminizer": "5.1.0-build.25",
+    "adminizer": "5.1.0-build.29",
     "ajv": "^8.17.1",
     "express": "^4.21.2",
     "password-hash": "^1.2.2",
