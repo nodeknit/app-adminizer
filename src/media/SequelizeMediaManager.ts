@@ -20,6 +20,8 @@ function toItem(record: any): MediaRecord {
   return {
     id: data.id,
     parent: data.parentId ?? null,
+    variants: [],
+    meta: [],
     mimeType: data.mimeType,
     path: data.path,
     size: data.size,
