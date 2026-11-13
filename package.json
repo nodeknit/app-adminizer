@@ -24,7 +24,7 @@
     "url": "git+https://github.com/nodeknit/app-adminizer.git"
   },
   "dependencies": {
-    "adminizer": "5.1.0-build.29",
+    "adminizer": "file:../adminizer",
     "ajv": "^8.17.1",
     "express": "^4.21.2",
     "password-hash": "^1.2.2",
@@ -38,7 +38,7 @@
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
-    "@nodeknit/app-manager": "commit",
+    "@nodeknit/app-manager": "file:../app-manager",
     "@types/express": "^5.0.0",
     "@types/password-hash": "^1.2.24",
     "@types/pg": "^8.11.11",
