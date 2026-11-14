@@ -4,7 +4,7 @@ import { Adminizer } from 'adminizer';
 /**
  * Extended Express Request with Adminizer-specific properties
  */
-export interface RequestWithAdminizer extends Request {
+export interface RequestWithAdminizer extends Omit<Request, "session"> {
   adminizer: Adminizer;
   upload: (options?: any) => any;
   i18n: any;
